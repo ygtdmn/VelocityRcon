@@ -1,0 +1,3 @@
+rcon-port = "1337"
+rcon-password = "extraordinary"
+rcon-colored = true
