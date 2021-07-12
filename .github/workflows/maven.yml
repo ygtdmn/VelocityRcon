@@ -17,7 +17,7 @@ jobs:
         - uses: actions/setup-java@v1
           with:
             java-version: 11
-        - run: mvn -B package --file pom.xml
+        - run: mvn -B clean install --file pom.xml
         - run: mkdir staging && cp target/*.jar staging
         - uses: actions/upload-artifact@v1
           with:
