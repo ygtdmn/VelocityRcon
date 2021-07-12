@@ -7,7 +7,6 @@ import lombok.Getter;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.checkerframework.checker.nullness.qual.NonNull;
-import org.jetbrains.annotations.NotNull;
 
 import static com.velocitypowered.api.permission.PermissionFunction.ALWAYS_TRUE;
 
@@ -24,7 +23,7 @@ public class IRconCommandSource implements RconCommandSource {
     }
 
     @Override
-    public void sendMessage(@NotNull Component component) {
+    public void sendMessage(@NonNull Component component) {
         buffer.append(LegacyComponentSerializer.legacySection().serialize(component)).append("\n");
     }
 
