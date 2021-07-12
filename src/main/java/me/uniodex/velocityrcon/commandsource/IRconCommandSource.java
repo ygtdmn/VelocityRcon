@@ -4,9 +4,10 @@ import com.velocitypowered.api.permission.PermissionFunction;
 import com.velocitypowered.api.permission.Tristate;
 import com.velocitypowered.api.proxy.ProxyServer;
 import lombok.Getter;
-import net.kyori.text.Component;
-import net.kyori.text.serializer.legacy.LegacyComponentSerializer;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.jetbrains.annotations.NotNull;
 
 import static com.velocitypowered.api.permission.PermissionFunction.ALWAYS_TRUE;
 
@@ -23,8 +24,8 @@ public class IRconCommandSource implements RconCommandSource {
     }
 
     @Override
-    public void sendMessage(Component component) {
-        buffer.append(LegacyComponentSerializer.legacy().serialize(component)).append("\n");
+    public void sendMessage(@NotNull Component component) {
+        buffer.append(LegacyComponentSerializer.legacySection().serialize(component)).append("\n");
     }
 
     @Override

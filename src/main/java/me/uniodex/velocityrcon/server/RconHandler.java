@@ -6,7 +6,7 @@ import io.netty.channel.SimpleChannelInboundHandler;
 import me.uniodex.velocityrcon.VelocityRcon;
 import me.uniodex.velocityrcon.commandsource.IRconCommandSource;
 import me.uniodex.velocityrcon.utils.Utils;
-import net.kyori.text.format.TextColor;
+import net.kyori.adventure.text.format.NamedTextColor;
 
 import java.io.IOException;
 import java.nio.ByteOrder;
@@ -77,29 +77,31 @@ public class RconHandler extends SimpleChannelInboundHandler<ByteBuf> {
         }
     }
 
-    private void handleCommand(ChannelHandlerContext ctx, String payload, int requestId) throws IOException {
+    private void handleCommand(ChannelHandlerContext ctx, String payload, int requestId) {
         if (!loggedIn) {
             sendResponse(ctx, FAILURE, TYPE_COMMAND, "");
             return;
         }
 
-        if (rconServer.getServer().getCommandManager().execute(commandSender, payload)) {
-            String message = commandSender.flush();
+        rconServer.getServer().getCommandManager().executeAsync(commandSender, payload).thenAccept(success -> {
+            if (success) {
+                String message = commandSender.flush();
 
-            if (!VelocityRcon.getInstance().isRconColored()) {
-                message = Utils.stripColor(message);
+                if (!VelocityRcon.getInstance().isRconColored()) {
+                    message = Utils.stripColor(message);
+                }
+
+                sendLargeResponse(ctx, requestId, message);
+            } else {
+                String message = NamedTextColor.RED + "No such command";
+
+                if (!VelocityRcon.getInstance().isRconColored()) {
+                    message = Utils.stripColor(message);
+                }
+
+                sendLargeResponse(ctx, requestId, String.format("Error executing: %s (%s)", payload, message));
             }
-
-            sendLargeResponse(ctx, requestId, message);
-        } else {
-            String message = TextColor.RED + "No such command";
-
-            if (!VelocityRcon.getInstance().isRconColored()) {
-                message = Utils.stripColor(message);
-            }
-
-            sendLargeResponse(ctx, requestId, String.format("Error executing: %s (%s)", payload, message));
-        }
+        });
     }
 
     private void sendResponse(ChannelHandlerContext ctx, int requestId, int type, String payload) {
