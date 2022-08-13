@@ -82,24 +82,41 @@ public class RconHandler extends SimpleChannelInboundHandler<ByteBuf> {
             sendResponse(ctx, FAILURE, TYPE_COMMAND, "");
             return;
         }
+        boolean stop = false;
+        boolean success;
+        String message;
 
-        final boolean success = rconServer.getServer().getCommandManager().executeAsync(commandSender, payload).join();
-        if (success) {
-            String message = commandSender.flush();
-
-            if (!VelocityRcon.getInstance().isRconColored()) {
-                message = Utils.stripColor(message);
-            }
-
-            sendLargeResponse(ctx, requestId, message);
+        if (payload.equalsIgnoreCase("end") || payload.equalsIgnoreCase("stop")) {
+            stop = true;
+            success = true;
+            message = "Shutting down the proxy...";
         } else {
-            String message = NamedTextColor.RED + "No such command";
-
-            if (!VelocityRcon.getInstance().isRconColored()) {
-                message = Utils.stripColor(message);
+            try {
+                success = rconServer.getServer().getCommandManager().executeAsync(commandSender, payload).join();
+                if (success) {
+                    message = commandSender.flush();
+                } else {
+                    message = NamedTextColor.RED + "No such command";
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                success = false;
+                message = NamedTextColor.RED + "Unknown error";
             }
+        }
 
-            sendLargeResponse(ctx, requestId, String.format("Error executing: %s (%s)", payload, message));
+        if (!success) {
+            message = String.format("Error executing: %s (%s)", payload, message);
+        }
+
+        if (!VelocityRcon.getInstance().isRconColored()) {
+            message = Utils.stripColor(message);
+        }
+
+        sendLargeResponse(ctx, requestId, message);
+
+        if (stop) {
+            rconServer.getServer().shutdown();
         }
     }
 
