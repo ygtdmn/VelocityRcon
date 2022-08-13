@@ -30,6 +30,8 @@ public class VelocityRcon {
     private final Logger logger;
 
     @Getter
+    private String rconHost = "127.0.0.1";
+    @Getter
     private int rconPort = 1337;
     @Getter
     private String rconPassword = "8Qnvb563haX26DDF";
@@ -57,6 +59,11 @@ public class VelocityRcon {
             logger.warn("Invalid rcon port. Shutting down.");
             return;
         }
+        rconHost = toml.getString("rcon-host");
+        if (rconHost == null) {
+            logger.warn("rcon-host is not specified in the config! 127.0.0.1 will be used.");
+            rconHost = "127.0.0.1";
+        }
         rconPassword = toml.getString("rcon-password");
         rconColored = toml.getBoolean("rcon-colored");
     }
@@ -72,7 +79,7 @@ public class VelocityRcon {
     }
 
     private void startListener() {
-        InetSocketAddress address = new InetSocketAddress(rconPort);
+        InetSocketAddress address = new InetSocketAddress(rconHost, rconPort);
         rconServer = new RconServer(server, rconPassword);
         logger.info("Binding rcon to address: /" + address.getHostName() + ":" + address.getPort());
 
