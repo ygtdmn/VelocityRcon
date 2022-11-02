@@ -29,8 +29,10 @@ public class VelocityRcon {
     @Getter
     private final Logger logger;
 
+    private static final String DEFAULT_HOST = "127.0.0.1";
+
     @Getter
-    private String rconHost = "127.0.0.1";
+    private String rconHost = DEFAULT_HOST;
     @Getter
     private int rconPort = 1337;
     @Getter
@@ -53,19 +55,20 @@ public class VelocityRcon {
             return;
         }
 
-        if (Utils.isInteger(toml.getString("rcon-port"))) {
-            rconPort = Integer.valueOf(toml.getString("rcon-port"));
-        } else {
-            logger.warn("Invalid rcon port. Shutting down.");
-            return;
+        try {
+            rconPort = toml.getLong("rcon-port").intValue();
+        } catch (ClassCastException ignored) {
+            try {
+                rconPort = Integer.parseInt(toml.getString("rcon-port"));
+            } catch (ClassCastException ignored2) {
+                logger.warn("Invalid rcon port. Shutting down.");
+                return;
+            }
         }
-        rconHost = toml.getString("rcon-host");
-        if (rconHost == null) {
-            logger.warn("rcon-host is not specified in the config! 127.0.0.1 will be used.");
-            rconHost = "127.0.0.1";
-        }
+
+        rconHost = toml.getString("rcon-host", DEFAULT_HOST);
         rconPassword = toml.getString("rcon-password");
-        rconColored = toml.getBoolean("rcon-colored");
+        rconColored = toml.getBoolean("rcon-colored", false);
     }
 
     @Subscribe
