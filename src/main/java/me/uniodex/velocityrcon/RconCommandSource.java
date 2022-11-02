@@ -1,5 +1,6 @@
-package me.uniodex.velocityrcon.commandsource;
+package me.uniodex.velocityrcon;
 
+import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.permission.PermissionFunction;
 import com.velocitypowered.api.permission.Tristate;
 import com.velocitypowered.api.proxy.ProxyServer;
@@ -13,15 +14,15 @@ import org.jetbrains.annotations.NotNull;
 
 import static com.velocitypowered.api.permission.PermissionFunction.ALWAYS_TRUE;
 
-public class IRconCommandSource implements RconCommandSource {
+public class RconCommandSource implements CommandSource {
 
     private final StringBuffer buffer = new StringBuffer();
-    private PermissionFunction permissionFunction = ALWAYS_TRUE;
+    private final PermissionFunction permissionFunction = ALWAYS_TRUE;
 
     @Getter
-    private ProxyServer server;
+    private final ProxyServer server;
 
-    public IRconCommandSource(ProxyServer server) {
+    public RconCommandSource(ProxyServer server) {
         this.server = server;
     }
 

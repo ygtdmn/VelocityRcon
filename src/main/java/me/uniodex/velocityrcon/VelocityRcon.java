@@ -12,7 +12,6 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import lombok.Getter;
 import me.uniodex.velocityrcon.server.RconServer;
-import me.uniodex.velocityrcon.utils.Utils;
 import org.slf4j.Logger;
 
 import java.io.File;
@@ -29,8 +28,12 @@ public class VelocityRcon {
     @Getter
     private final Logger logger;
 
+    private static final String DEFAULT_HOST = "127.0.0.1";
+
+    private final Toml toml;
+
     @Getter
-    private String rconHost = "127.0.0.1";
+    private String rconHost = DEFAULT_HOST;
     @Getter
     private int rconPort = 1337;
     @Getter
@@ -47,25 +50,13 @@ public class VelocityRcon {
         this.logger = logger;
         instance = this;
 
-        Toml toml = loadConfig(folder);
+        toml = loadToml(folder);
         if (toml == null) {
             logger.warn("Failed to load rcon.toml. Shutting down.");
             return;
         }
 
-        if (Utils.isInteger(toml.getString("rcon-port"))) {
-            rconPort = Integer.valueOf(toml.getString("rcon-port"));
-        } else {
-            logger.warn("Invalid rcon port. Shutting down.");
-            return;
-        }
-        rconHost = toml.getString("rcon-host");
-        if (rconHost == null) {
-            logger.warn("rcon-host is not specified in the config! 127.0.0.1 will be used.");
-            rconHost = "127.0.0.1";
-        }
-        rconPassword = toml.getString("rcon-password");
-        rconColored = toml.getBoolean("rcon-colored");
+        loadDataFromConfig();
     }
 
     @Subscribe
@@ -80,10 +71,9 @@ public class VelocityRcon {
 
     private void startListener() {
         InetSocketAddress address = new InetSocketAddress(rconHost, rconPort);
-        rconServer = new RconServer(server, rconPassword);
-        logger.info("Binding rcon to address: /" + address.getHostName() + ":" + address.getPort());
+        rconServer = new RconServer(address, rconPassword, new VelocityRconCommandHandler(server, logger));
 
-        ChannelFuture future = rconServer.bind(address);
+        ChannelFuture future = rconServer.bind();
         Channel channel = future.awaitUninterruptibly().channel();
 
         if (!channel.isActive()) {
@@ -93,13 +83,28 @@ public class VelocityRcon {
 
     private void stopListener() {
         if (rconServer != null) {
-            logger.info("Trying to stop RCON listener");
-
             rconServer.shutdown();
         }
     }
 
-    private Toml loadConfig(Path path) {
+    private void loadDataFromConfig() {
+        try {
+            rconPort = toml.getLong("rcon-port").intValue();
+        } catch (ClassCastException ignored) {
+            try {
+                rconPort = Integer.parseInt(toml.getString("rcon-port"));
+            } catch (ClassCastException ignored2) {
+                logger.warn("Invalid rcon port. Shutting down.");
+                return;
+            }
+        }
+
+        rconHost = toml.getString("rcon-host", DEFAULT_HOST);
+        rconPassword = toml.getString("rcon-password");
+        rconColored = toml.getBoolean("rcon-colored", false);
+    }
+
+    private Toml loadToml(Path path) {
         File folder = path.toFile();
         File file = new File(folder, "rcon.toml");
         if (!file.getParentFile().exists()) {
