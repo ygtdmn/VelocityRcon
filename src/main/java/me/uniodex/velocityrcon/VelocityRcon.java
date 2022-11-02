@@ -12,7 +12,6 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import lombok.Getter;
 import me.uniodex.velocityrcon.server.RconServer;
-import me.uniodex.velocityrcon.utils.Utils;
 import org.slf4j.Logger;
 
 import java.io.File;
@@ -30,6 +29,8 @@ public class VelocityRcon {
     private final Logger logger;
 
     private static final String DEFAULT_HOST = "127.0.0.1";
+
+    private final Toml toml;
 
     @Getter
     private String rconHost = DEFAULT_HOST;
@@ -49,12 +50,44 @@ public class VelocityRcon {
         this.logger = logger;
         instance = this;
 
-        Toml toml = loadConfig(folder);
+        toml = loadToml(folder);
         if (toml == null) {
             logger.warn("Failed to load rcon.toml. Shutting down.");
             return;
         }
 
+        loadDataFromConfig();
+    }
+
+    @Subscribe
+    public void onInitialize(ProxyInitializeEvent event) {
+        startListener();
+    }
+
+    @Subscribe
+    public void onShutdown(ProxyShutdownEvent event) {
+        stopListener();
+    }
+
+    private void startListener() {
+        InetSocketAddress address = new InetSocketAddress(rconHost, rconPort);
+        rconServer = new RconServer(address, rconPassword, new VelocityRconCommandHandler(server, logger));
+
+        ChannelFuture future = rconServer.bind();
+        Channel channel = future.awaitUninterruptibly().channel();
+
+        if (!channel.isActive()) {
+            logger.warn("Failed to bind rcon port. Address already in use?");
+        }
+    }
+
+    private void stopListener() {
+        if (rconServer != null) {
+            rconServer.shutdown();
+        }
+    }
+
+    private void loadDataFromConfig() {
         try {
             rconPort = toml.getLong("rcon-port").intValue();
         } catch (ClassCastException ignored) {
@@ -71,38 +104,7 @@ public class VelocityRcon {
         rconColored = toml.getBoolean("rcon-colored", false);
     }
 
-    @Subscribe
-    public void onInitialize(ProxyInitializeEvent event) {
-        startListener();
-    }
-
-    @Subscribe
-    public void onShutdown(ProxyShutdownEvent event) {
-        stopListener();
-    }
-
-    private void startListener() {
-        InetSocketAddress address = new InetSocketAddress(rconHost, rconPort);
-        rconServer = new RconServer(server, rconPassword);
-        logger.info("Binding rcon to address: /" + address.getHostName() + ":" + address.getPort());
-
-        ChannelFuture future = rconServer.bind(address);
-        Channel channel = future.awaitUninterruptibly().channel();
-
-        if (!channel.isActive()) {
-            logger.warn("Failed to bind rcon port. Address already in use?");
-        }
-    }
-
-    private void stopListener() {
-        if (rconServer != null) {
-            logger.info("Trying to stop RCON listener");
-
-            rconServer.shutdown();
-        }
-    }
-
-    private Toml loadConfig(Path path) {
+    private Toml loadToml(Path path) {
         File folder = path.toFile();
         File file = new File(folder, "rcon.toml");
         if (!file.getParentFile().exists()) {

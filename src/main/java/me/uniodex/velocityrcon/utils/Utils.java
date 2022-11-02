@@ -22,9 +22,4 @@ public class Utils {
 
         return STRIP_MC_COLOR_PATTERN.matcher(input).replaceAll("");
     }
-
-
-    public static boolean isInteger(String str) {
-        return str.matches("-?\\d+");
-    }
 }
